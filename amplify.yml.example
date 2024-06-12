@@ -1,0 +1,59 @@
+# Permissions for amplify role to access SSM Parameter Store is in amplify-role-policy.json. can create new inline policy for AmplifySSRLoggingRole-<uuid>
+# Build settings for amplify
+# where <domain_id> is the domain id of the amplify project (e.g. https://main.<domain_id>.amplifyapp.com)
+# where <role_id> is the role id of the amplify project (e.g. arn:aws:iam::<role_id>:role/service-role/AmplifySSRLoggingRole-<uuid>) (this is in the .json)
+# where <region> is the region of the amplify project (e.g. us-east-2) (this is in the .json)
+# this assumes that the environment secrets are stored in Secret management in all branches
+
+# Other Configuration:
+# - Google Credentials OAuth 2.0 Client ID needs new domain URIs added for Authorized JavaScript origins and Authorized redirect URIs
+# - Google OAuth consent screen needs to be Published to remove user cap of 100.
+# - stripe webhook needs to be added for checkout.session.completed and the new signing secrets needs
+#   to be put in the secret parameter store STRIPE_WEBHOOK_SECRET instead of the cli secret
+#   for testing make sure test mode is on when building the webhook or any other things like products
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci --cache .npm --prefer-offline
+    build:
+      commands:
+        # Fetch parameters from Parameter Store and export as environment variables
+        - export NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" --with-decryption --query "Parameter.Value" --output text)
+        - export DATABASE_URL=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/DATABASE_URL" --with-decryption --query "Parameter.Value" --output text)
+        - export DIRECT_URL=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/DIRECT_URL" --with-decryption --query "Parameter.Value" --output text)
+        - export NEXTAUTH_SECRET=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/NEXTAUTH_SECRET" --with-decryption --query "Parameter.Value" --output text)
+        - export NEXTAUTH_URL=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/NEXTAUTH_URL" --with-decryption --query "Parameter.Value" --output text)
+        - export GOOGLE_CLIENT_ID=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/GOOGLE_CLIENT_ID" --with-decryption --query "Parameter.Value" --output text)
+        - export GOOGLE_CLIENT_SECRET=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/GOOGLE_CLIENT_SECRET" --with-decryption --query "Parameter.Value" --output text)
+        - export ACCESS_KEY_ID=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/ACCESS_KEY_ID" --with-decryption --query "Parameter.Value" --output text)
+        - export SECRET_ACCESS_KEY=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/SECRET_ACCESS_KEY" --with-decryption --query "Parameter.Value" --output text)
+        - export REGION=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/REGION" --with-decryption --query "Parameter.Value" --output text)
+        - export STRIPE_SECRET_KEY=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/STRIPE_SECRET_KEY" --with-decryption --query "Parameter.Value" --output text)
+        - export PRICE_ID_TEST_100_CREDITS=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/PRICE_ID_TEST_100_CREDITS" --with-decryption --query "Parameter.Value" --output text)
+        - export STRIPE_WEBHOOK_SECRET=$(aws ssm get-parameter --name "/amplify/shared/<domain_id>/STRIPE_WEBHOOK_SECRET" --with-decryption --query "Parameter.Value" --output text)
+        # Write environment variables to .env.production file
+        - echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" >> .env.production
+        - echo "DATABASE_URL=$DATABASE_URL" >> .env.production
+        - echo "DIRECT_URL=$DIRECT_URL" >> .env.production
+        - echo "NEXTAUTH_SECRET=$NEXTAUTH_SECRET" >> .env.production
+        - echo "NEXTAUTH_URL=$NEXTAUTH_URL" >> .env.production
+        - echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env.production
+        - echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env.production
+        - echo "ACCESS_KEY_ID=$ACCESS_KEY_ID" >> .env.production
+        - echo "SECRET_ACCESS_KEY=$SECRET_ACCESS_KEY" >> .env.production
+        - echo "REGION=$REGION" >> .env.production
+        - echo "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY" >> .env.production
+        - echo "PRICE_ID_TEST_100_CREDITS=$PRICE_ID_TEST_100_CREDITS" >> .env.production
+        - echo "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET" >> .env.production
+        - echo "NODE_ENV=production" >> .env.production
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .next/cache/**/*
+      - .npm/**/*
