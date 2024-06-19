@@ -56,10 +56,10 @@ export function Api({ stack }: StackContext) {
         function: "packages/handlers/src/test.handler",
         authorizer: "none",
       },
-      // "GET /log/create": {
-      //   function: "packages/handlers/src/test.handler",
-      //   authorizer: "none",
-      // },
+      "GET /endpoint/test": {
+        function: "packages/handlers/src/test.handler",
+        authorizer: "none",
+      },
       // "GET /log/get": {
       //   function: "packages/handlers/src/test.handler",
       //   authorizer: "none",
