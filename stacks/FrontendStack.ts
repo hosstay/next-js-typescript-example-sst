@@ -17,7 +17,7 @@ export function Site({ stack }: StackContext) {
 
   const site = new NextjsSite(stack, "frontend", {
     path: "packages/frontend",
-    buildCommand: "npm run build",
+    buildCommand: "bun run build",
     // bind: [
     //   auth,
     //   cluster,
